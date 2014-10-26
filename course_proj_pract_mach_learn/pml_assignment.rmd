@@ -7,18 +7,18 @@ The dataset was generously provided by the authors of following paper:<br>
 
 Whilst doing these exercises, people were asked to perform the exercises in 5 different ways.<br> Only 1 way was correct (classe A), whilst the other ways were incorrect in a distinctly different way (classe B to E).
 
-The goal of this assignment is to build a model to predict the way the exercise was done, i.e. correct (classe A) of incorrect in one of the distinctly different manners (classes B to E).
+The goal of this assignment is to build a model to predict the way the exercise was done, i.e. correct (classe A) or incorrect in one of the distinctly different manners (classes B to E).
 
 #### Overall Summary
 
-A data set of 19622 measurement observations regarding movement of people lifting barbells. Based on the measurement data and it's classification, the goal is to build a model to predict if the lifing excercise is done correcly, or if wrong in which way (4 possible cases) it is performed wrong.
+A data set of 19622 measurement observations regarding movement of people lifting barbells was provided. Based on this measurement data and it's classification, the goal is to build a model to predict if the lifing excercise is done correcly, or if wrong, in which way (4 possible cases) it is performed wrong.
 
 The provided data set is split in 2 data sets. <br>
 75%  is used for model training, the remaining 25% is used for validating the obtained model.
 
 The model fitted is Random Forrest. The train function from the caret package was tuned to speed up the calculation.
 
-Validating the obtained model on the test data kept asside we obtain 99.5% correct predictions. This indicates that the model is quite accurate.
+Validating the obtained model on the test data kept asside, 99.5% correct predictions is obtained. This indicates that the model is quite accurate.
 With this model the 20 prediction cases (where the outcome is unknown) are predicted and prepared for submission.
 
 
@@ -33,9 +33,6 @@ train <- read.csv("pml-training.csv") #, colClasses="character")
 test <- read.csv("pml-testing.csv") #, colClasses="character")
 nrow(train)
 str(train$classe)
-# str(train)
-# summary(train)
-
 ```
 
 #### Data Selection & Preparation
@@ -46,7 +43,7 @@ Looking at the data and reading the description of the data (see references in t
 - The data contains both the actual measurements and calculated average, min, max, ... values. Looking at the test data we see that actual measurement data is provided to predict on.
 
 Therefor we select only the actual measuring data.<br>
-In this way we can strongly reduce the number of variables to take into account.
+In this way we can strongly reduce the number of variables to take into account for training the model.
 
 ```{r, data_select}
 # only retain the measurement data (i.e. not the time window calculated averages)
@@ -62,16 +59,17 @@ meastraindata <- meastraindata[, meascolumns]
 To provide for test data against which we can evaluate the resulting model, we split the training data set into 2 partitions.
 
 ```{r, data split}
-nrow(meastraindata)
 inTrain <- createDataPartition(y=meastraindata$classe,p=0.75, list=FALSE)
 modtrain <- meastraindata[inTrain,]
 modtest <- meastraindata[-inTrain,]
-nrow(modtrain)
+df <- data.frame(title = c("total nr of records: ","rows for training: ","rows for testing: "), nrs=c(nrow(meastraindata),nrow(modtrain),nrow(modtest)))
+df
 ```
 
 #### Fitting a model
 
-Considering that the remaining nr of variables is still substantial (large number of dimensions), we select the Random Forrest method to build a model.
+Considering that the remaining nr of variables is still substantial (large number of dimensions), we select the Random Forrest method to build a model. In this way a more detailed model and accurate model that can take into account the large dimensionality is chosen.
+
 From earlier experiments and knowing that Random Forrest require a lot of calculation we change the default parameters of the Random Forrest to speed up the calculation.
 * the number of trees is reduced from default (500) to 50
 * the number of variables to at each level is fixed in steps
@@ -89,14 +87,15 @@ registerDoParallel(cl)
 ```
 
 ```{r, train_modfitmeas, cache=TRUE}
-nrow(modtrain)
-Sys.time()
+starttime <- Sys.time()
 #method for training cross-validation and 10-folds will be created
 cvCtrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 grid_rf <- expand.grid(.mtry = c(2, 4, 8, 16, 32, 64))
 modfitmeas <- train(classe ~ . , data=modtrain, method="parRF",traincontrol= cvCtrl, ntree=50, tuneGrid = grid_rf)
+endtime <- Sys.time()
+timespent <- endtime - starttime
+timespent
 print(modfitmeas)
-Sys.time()
 ```
 
 #### Out of Sample error on testdata
@@ -110,7 +109,6 @@ The figure is expressed in % correct cases.
 ```{r, validate model}
 modtest$pred <- predict(modfitmeas, newdata = modtest)
 ftest = function(val, pred) { (sum((pred == val)*1)/length(val))*100 }
-nrow(modtest)
 ftest(modtest$classe, modtest$pred)
 ```
 

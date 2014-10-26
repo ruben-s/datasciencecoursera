@@ -190,18 +190,18 @@ hljs.initHighlightingOnLoad();
 
 <p>Whilst doing these exercises, people were asked to perform the exercises in 5 different ways.<br> Only 1 way was correct (classe A), whilst the other ways were incorrect in a distinctly different way (classe B to E).</p>
 
-<p>The goal of this assignment is to build a model to predict the way the exercise was done, i.e. correct (classe A) of incorrect in one of the distinctly different manners (classes B to E).</p>
+<p>The goal of this assignment is to build a model to predict the way the exercise was done, i.e. correct (classe A) or incorrect in one of the distinctly different manners (classes B to E).</p>
 
 <h4>Overall Summary</h4>
 
-<p>A data set of 19622 measurement observations regarding movement of people lifting barbells. Based on the measurement data and it&#39;s classification, the goal is to build a model to predict if the lifing excercise is done correcly, or if wrong in which way (4 possible cases) it is performed wrong.</p>
+<p>A data set of 19622 measurement observations regarding movement of people lifting barbells was provided. Based on this measurement data and it&#39;s classification, the goal is to build a model to predict if the lifing excercise is done correcly, or if wrong, in which way (4 possible cases) it is performed wrong.</p>
 
 <p>The provided data set is split in 2 data sets. <br>
 75%  is used for model training, the remaining 25% is used for validating the obtained model.</p>
 
 <p>The model fitted is Random Forrest. The train function from the caret package was tuned to speed up the calculation.</p>
 
-<p>Validating the obtained model on the test data kept asside we obtain 99.5% correct predictions. This indicates that the model is quite accurate.
+<p>Validating the obtained model on the test data kept asside, 99.5% correct predictions is obtained. This indicates that the model is quite accurate.
 With this model the 20 prediction cases (where the outcome is unknown) are predicted and prepared for submission.</p>
 
 <h4>Data Summary</h4>
@@ -224,10 +224,6 @@ nrow(train)
 <pre><code>##  Factor w/ 5 levels &quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
 </code></pre>
 
-<pre><code class="r"># str(train)
-# summary(train)
-</code></pre>
-
 <h4>Data Selection &amp; Preparation</h4>
 
 <p>Looking at the data and reading the description of the data (see references in the Introduction):</p>
@@ -239,7 +235,7 @@ nrow(train)
 </ul>
 
 <p>Therefor we select only the actual measuring data.<br>
-In this way we can strongly reduce the number of variables to take into account.</p>
+In this way we can strongly reduce the number of variables to take into account for training the model.</p>
 
 <pre><code class="r"># only retain the measurement data (i.e. not the time window calculated averages)
 meastraindata &lt;- train[train$new_window==&quot;no&quot;, ]
@@ -252,25 +248,24 @@ meastraindata &lt;- meastraindata[, meascolumns]
 
 <p>To provide for test data against which we can evaluate the resulting model, we split the training data set into 2 partitions.</p>
 
-<pre><code class="r">nrow(meastraindata)
-</code></pre>
-
-<pre><code>## [1] 19216
-</code></pre>
-
 <pre><code class="r">inTrain &lt;- createDataPartition(y=meastraindata$classe,p=0.75, list=FALSE)
 modtrain &lt;- meastraindata[inTrain,]
 modtest &lt;- meastraindata[-inTrain,]
-nrow(modtrain)
+df &lt;- data.frame(title = c(&quot;total nr of records: &quot;,&quot;rows for training: &quot;,&quot;rows for testing: &quot;), nrs=c(nrow(meastraindata),nrow(modtrain),nrow(modtest)))
+df
 </code></pre>
 
-<pre><code>## [1] 14414
+<pre><code>##                   title   nrs
+## 1 total nr of records:  19216
+## 2   rows for training:  14414
+## 3    rows for testing:   4802
 </code></pre>
 
 <h4>Fitting a model</h4>
 
-<p>Considering that the remaining nr of variables is still substantial (large number of dimensions), we select the Random Forrest method to build a model.
-From earlier experiments and knowing that Random Forrest require a lot of calculation we change the default parameters of the Random Forrest to speed up the calculation.</p>
+<p>Considering that the remaining nr of variables is still substantial (large number of dimensions), we select the Random Forrest method to build a model. In this way a more detailed model and accurate model that can take into account the large dimensionality is chosen.</p>
+
+<p>From earlier experiments and knowing that Random Forrest require a lot of calculation we change the default parameters of the Random Forrest to speed up the calculation.</p>
 
 <ul>
 <li>the number of trees is reduced from default (500) to 50</li>
@@ -297,52 +292,76 @@ From earlier experiments and knowing that Random Forrest require a lot of calcul
 <pre><code class="r">Sys.time()
 </code></pre>
 
-<pre><code>## [1] &quot;2014-10-26 14:36:37 CET&quot;
+<pre><code>## [1] &quot;2014-10-26 20:19:07 CET&quot;
 </code></pre>
 
 <pre><code class="r">#method for training cross-validation and 10-folds will be created
 cvCtrl &lt;- trainControl(method = &quot;repeatedcv&quot;, number = 10, repeats = 10)
 grid_rf &lt;- expand.grid(.mtry = c(2, 4, 8, 16, 32, 64))
-#cvCtrl &lt;- trainControl(method = &quot;cv&quot;, number=5, seeds=123, allowParallel = TRUE)
-#modfitmeas &lt;- train(classe ~ . , data=meastraindata, method=&quot;rf&quot;, traincontrol= cvCtrl)
 modfitmeas &lt;- train(classe ~ . , data=modtrain, method=&quot;parRF&quot;,traincontrol= cvCtrl, ntree=50, tuneGrid = grid_rf)
-print(modfitmeas$finalModel)
+print(modfitmeas)
 </code></pre>
 
-<pre><code>## 
-## Call:
-##  randomForest(x = &quot;x&quot;, y = &quot;y&quot;, ntree = 25, mtry = 8, traincontrol = structure(list(     method = &quot;repeatedcv&quot;, number = 10, repeats = 10, p = 0.75,      initialWindow = NULL, horizon = 1, fixedWindow = TRUE, verboseIter = FALSE,      returnData = TRUE, returnResamp = &quot;final&quot;, savePredictions = FALSE,      classProbs = FALSE, summaryFunction = function (data, lev = NULL,          model = NULL)      {         if (is.character(data$obs))              data$obs &lt;- factor(data$obs, levels = lev)         postResample(data[, &quot;pred&quot;], data[, &quot;obs&quot;])     }, selectionFunction = &quot;best&quot;, preProcOptions = structure(list(         thresh = 0.95, ICAcomp = 3, k = 5), .Names = c(&quot;thresh&quot;,      &quot;ICAcomp&quot;, &quot;k&quot;)), index = NULL, indexOut = NULL, timingSamps = 0,      predictionBounds = c(FALSE, FALSE), seeds = NA, adaptive = structure(list(         min = 5, alpha = 0.05, method = &quot;gls&quot;, complete = TRUE), .Names = c(&quot;min&quot;,      &quot;alpha&quot;, &quot;method&quot;, &quot;complete&quot;)), allowParallel = TRUE), .Names = c(&quot;method&quot;,  &quot;number&quot;, &quot;repeats&quot;, &quot;p&quot;, &quot;initialWindow&quot;, &quot;horizon&quot;, &quot;fixedWindow&quot;,  &quot;verboseIter&quot;, &quot;returnData&quot;, &quot;returnResamp&quot;, &quot;savePredictions&quot;,  &quot;classProbs&quot;, &quot;summaryFunction&quot;, &quot;selectionFunction&quot;, &quot;preProcOptions&quot;,  &quot;index&quot;, &quot;indexOut&quot;, &quot;timingSamps&quot;, &quot;predictionBounds&quot;, &quot;seeds&quot;,  &quot;adaptive&quot;, &quot;allowParallel&quot;))) 
-##                Type of random forest: classification
-##                      Number of trees: 50
-## No. of variables tried at each split: 8
+<pre><code>## Parallel Random Forest 
+## 
+## 14414 samples
+##    52 predictor
+##     5 classes: &#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39; 
+## 
+## No pre-processing
+## Resampling: Bootstrapped (25 reps) 
+## 
+## Summary of sample sizes: 14414, 14414, 14414, 14414, 14414, 14414, ... 
+## 
+## Resampling results across tuning parameters:
+## 
+##   mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
+##    2    1         1      0.002        0.003   
+##    4    1         1      0.002        0.002   
+##    8    1         1      0.002        0.002   
+##   16    1         1      0.002        0.003   
+##   32    1         1      0.002        0.002   
+##   64    1         1      0.005        0.007   
+## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was mtry = 8.
 </code></pre>
 
 <pre><code class="r">Sys.time()
 </code></pre>
 
-<pre><code>## [1] &quot;2014-10-26 14:49:51 CET&quot;
+<pre><code>## [1] &quot;2014-10-26 20:33:22 CET&quot;
 </code></pre>
 
 <h4>Out of Sample error on testdata</h4>
 
-<p>To validate the obtained Random Forest model we predict with the obtained model on the test data set that was set asside.
+<p>To validate the obtained Random Forest model we predict with the obtained model on the test data set that was set asside.<br>
 In this test dataset both the prediction and the actuall outcome is known.</p>
 
 <p>We create a function to calculate the number of correctly predicted cases.
 The figure is expressed in % correct cases.</p>
 
+<pre><code class="r">endtime &lt;- Sys.time()
+timespent &lt;- endtime - starttime
+timespent
+</code></pre>
+
+<pre><code>## Time difference of 0.02771 secs
+</code></pre>
+
 <pre><code class="r">modtest$pred &lt;- predict(modfitmeas, newdata = modtest)
-ftest = function(val, pred) { (sum((pred == val)*1)/length(val))*100 }
-nrow(modtest)
 </code></pre>
 
-<pre><code>## [1] 4802
+<pre><code>## Loading required package: randomForest
+## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.
 </code></pre>
 
-<pre><code class="r">ftest(modtest$classe, modtest$pred)
+<pre><code class="r">ftest = function(val, pred) { (sum((pred == val)*1)/length(val))*100 }
+ftest(modtest$classe, modtest$pred)
 </code></pre>
 
-<pre><code>## [1] 99.46
+<pre><code>## [1] 99.44
 </code></pre>
 
 <h4>Conclusion</h4>
@@ -352,8 +371,8 @@ Validating the model on set aside test data, we find accurate predictions in 99.
 
 <h4>Predict the provided test cases for submission</h4>
 
-<p>The assignement provided in 20 test cases for which the outcome is unknown.
-For these test cases a prediction is made and save to a seperate files for submission.</p>
+<p>The assignement provided in 20 test cases for which the outcome is unknown.<br>
+For these test cases a prediction is made and saved to seperate files for submission.</p>
 
 <pre><code class="r">answers&lt;- predict(modfitmeas, newdata = test)
 answers &lt;- as.vector(answers)

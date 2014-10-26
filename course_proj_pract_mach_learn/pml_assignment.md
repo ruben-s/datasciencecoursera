@@ -109,26 +109,21 @@ In the background we also configure the R session so that advantage is taken of 
 
 
 ```r
-nrow(modtrain)
-```
-
-```
-## [1] 14414
-```
-
-```r
-Sys.time()
-```
-
-```
-## [1] "2014-10-26 20:19:07 CET"
-```
-
-```r
+starttime <- Sys.time()
 #method for training cross-validation and 10-folds will be created
 cvCtrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 grid_rf <- expand.grid(.mtry = c(2, 4, 8, 16, 32, 64))
 modfitmeas <- train(classe ~ . , data=modtrain, method="parRF",traincontrol= cvCtrl, ntree=50, tuneGrid = grid_rf)
+endtime <- Sys.time()
+timespent <- endtime - starttime
+timespent
+```
+
+```
+## Time difference of 13.21 mins
+```
+
+```r
 print(modfitmeas)
 ```
 
@@ -148,22 +143,14 @@ print(modfitmeas)
 ## 
 ##   mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
 ##    2    1         1      0.002        0.003   
-##    4    1         1      0.002        0.002   
+##    4    1         1      0.002        0.003   
 ##    8    1         1      0.002        0.002   
 ##   16    1         1      0.002        0.003   
-##   32    1         1      0.002        0.002   
-##   64    1         1      0.005        0.007   
+##   32    1         1      0.002        0.003   
+##   64    1         1      0.005        0.006   
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
 ## The final value used for the model was mtry = 8.
-```
-
-```r
-Sys.time()
-```
-
-```
-## [1] "2014-10-26 20:33:22 CET"
 ```
 
 #### Out of Sample error on testdata
@@ -176,32 +163,13 @@ The figure is expressed in % correct cases.
 
 
 ```r
-endtime <- Sys.time()
-timespent <- endtime - starttime
-timespent
-```
-
-```
-## Time difference of 0.02771 secs
-```
-
-```r
 modtest$pred <- predict(modfitmeas, newdata = modtest)
-```
-
-```
-## Loading required package: randomForest
-## randomForest 4.6-10
-## Type rfNews() to see new features/changes/bug fixes.
-```
-
-```r
 ftest = function(val, pred) { (sum((pred == val)*1)/length(val))*100 }
 ftest(modtest$classe, modtest$pred)
 ```
 
 ```
-## [1] 99.44
+## [1] 99.33
 ```
 
 #### Conclusion
